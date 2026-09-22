@@ -184,22 +184,23 @@ class AscendMLAAttentionSpec(MLAAttentionSpec):
 @dataclass(frozen=True, kw_only=True)
 class AscendSFAIndexerCacheSpec(MLAAttentionSpec):
     """KV cache spec for SFA indexer K/scale cache.
-
+ 
     The scheduler should treat this as a full-attention-compatible cache so it
     can share block ids with the MLA cache in the same UniformType group. The
     model runner still allocates it as an independent physical cache tensor.
     """
-
+ 
     scale_dim: int = 0
     scale_dtype: torch.dtype = torch.int8
     cache_sparse_li_c8: bool = False
+    cache_sparse_li_c4: bool = False
     cache_dtype_str: str | None = None
     sfa_dcp_replicated_indexer_size: int = 1
-
+ 
     @property
     def page_size_bytes(self) -> int:
         return self.real_page_size_bytes
-
+ 
     @property
     def real_page_size_bytes(self) -> int:
         num_heads_per_page = self.block_size * self.num_kv_heads
@@ -208,7 +209,7 @@ class AscendSFAIndexerCacheSpec(MLAAttentionSpec):
             * num_heads_per_page
             * (self.head_size * get_dtype_size(self.dtype) + self.scale_dim * get_dtype_size(self.scale_dtype))
         )
-
+ 
     @classmethod
     def merge(cls, specs: list[Self]) -> Self:
         assert all(isinstance(spec, AscendSFAIndexerCacheSpec) for spec in specs), (
@@ -219,6 +220,7 @@ class AscendSFAIndexerCacheSpec(MLAAttentionSpec):
         scale_dim_set = set(spec.scale_dim for spec in specs)
         scale_dtype_set = set(spec.scale_dtype for spec in specs)
         cache_sparse_li_c8_set = set(spec.cache_sparse_li_c8 for spec in specs)
+        cache_sparse_li_c4_set = set(spec.cache_sparse_li_c4 for spec in specs)
         sfa_dcp_replicated_indexer_size_set = set(spec.sfa_dcp_replicated_indexer_size for spec in specs)
         assert (
             len(cache_dtype_str_set) == 1
@@ -226,11 +228,12 @@ class AscendSFAIndexerCacheSpec(MLAAttentionSpec):
             and len(scale_dim_set) == 1
             and len(scale_dtype_set) == 1
             and len(cache_sparse_li_c8_set) == 1
+            and len(cache_sparse_li_c4_set) == 1
             and len(sfa_dcp_replicated_indexer_size_set) == 1
         ), (
             "All SFA indexer cache layers in the same KV cache group must use "
-            "the same dtype, scale layout, quantization method, sparse LI C8 "
-            "setting and DCP replication size."
+            "the same dtype, scale layout, quantization method, LI quant flags "
+            "and DCP replication size."
         )
         return cls(
             block_size=specs[0].block_size,
@@ -241,6 +244,7 @@ class AscendSFAIndexerCacheSpec(MLAAttentionSpec):
             scale_dim=scale_dim_set.pop(),
             scale_dtype=scale_dtype_set.pop(),
             cache_sparse_li_c8=cache_sparse_li_c8_set.pop(),
+            cache_sparse_li_c4=cache_sparse_li_c4_set.pop(),
             sfa_dcp_replicated_indexer_size=sfa_dcp_replicated_indexer_size_set.pop(),
         )
 
