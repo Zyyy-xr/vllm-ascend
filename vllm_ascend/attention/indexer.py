@@ -210,9 +210,11 @@ class AscendSFAIndexerBackend(nn.Module, AttentionBackend):
         if self.enable_sparse_li_quant and AscendSFAIndexerBackend.k_hadamard is None:
             hadamard = torch.tensor(scipy.linalg.hadamard(128), dtype=torch.bfloat16, device="npu")
             AscendSFAIndexerBackend.k_hadamard = hadamard / (128**0.5)
+
     @property
     def enable_sparse_li_quant(self) -> bool:
         return self.enable_sparse_li_c8 or self.enable_sparse_li_c4
+
     @property
     def num_cache_tensors(self) -> int:
         """Number of tensors this indexer's cache occupies in the composed

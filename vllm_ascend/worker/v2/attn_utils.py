@@ -116,14 +116,22 @@ def get_kv_cache_spec(vllm_config: VllmConfig) -> dict[str, KVCacheSpec]:
         if enable_sfa_dcp_replicated_indexer(vllm_config)
         else 1
     )
-
-    c8_k_cache_dtype = kv_cache_dtype_str_to_dtype(
-        vllm_config.attention_config.indexer_kv_dtype, vllm_config.model_config
-    )
-    if c8_k_cache_dtype == torch.float8_e4m3fn:
-        c8_k_scale_cache_dtype = torch.float32
-    elif c8_k_cache_dtype == torch.int8:
-        c8_k_scale_cache_dtype = torch.float16
+    enable_sparse_sfa_c8 = vllm_config.cache_config.cache_dtype in ["fp8", "int8"]
+    enable_sparse_li_c8 = vllm_config.attention_config.indexer_kv_dtype in ["fp8", "int8"]
+    if enable_sparse_sfa_c8:
+        sfa_c8_k_cache_dtype = kv_cache_dtype_str_to_dtype(
+            vllm_config.cache_config.cache_dtype, 
+            vllm_config.model_config
+        )
+    if enable_sparse_li_c8:
+        li_c8_k_cache_dtype = kv_cache_dtype_str_to_dtype(
+            vllm_config.attention_config.indexer_kv_dtype, 
+            vllm_config.model_config
+        )
+        if li_c8_k_cache_dtype == torch.float8_e4m3fn:
+            li_c8_k_scale_cache_dtype = torch.float32
+        elif li_c8_k_cache_dtype == torch.int8:
+            li_c8_k_scale_cache_dtype = torch.float16      
 
     for layer_name, attn_module in attn_layers.items():
         if getattr(attn_module, "kv_sharing_target_layer_name", None):
@@ -150,7 +158,7 @@ def get_kv_cache_spec(vllm_config: VllmConfig) -> dict[str, KVCacheSpec]:
                     vllm_config.model_config.hf_text_config.kv_lora_rank,
                     vllm_config.model_config.hf_text_config.qk_rope_head_dim,
                 )
-                dtype = c8_k_cache_dtype
+                dtype = sfa_c8_k_cache_dtype
                 cache_dtype_str = vllm_config.cache_config.cache_dtype
             else:
                 head_size = spec.head_size
@@ -190,13 +198,13 @@ def get_kv_cache_spec(vllm_config: VllmConfig) -> dict[str, KVCacheSpec]:
                 num_kv_heads=1,
                 head_size=head_dim // 2 if cache_sparse_li_c4 else head_dim,
                 dtype=torch.uint8 if cache_sparse_li_c4
-                else c8_k_cache_dtype if cache_sparse_li_c8
+                else li_c8_k_cache_dtype if cache_sparse_li_c8
                 else vllm_config.model_config.dtype,
                 cache_dtype_str=(vllm_config.cache_config.cache_dtype 
                 if cache_sparse_li_c8 or cache_sparse_li_c4 else "auto"),
                 scale_dim=head_dim // 64 * 2 if cache_sparse_li_c4 else 1 if cache_sparse_li_c8 else 0,
                 scale_dtype=torch.float8_e8m0fnu if cache_sparse_li_c4
-                else c8_k_scale_cache_dtype if cache_sparse_li_c8 else torch.int8,
+                else li_c8_k_scale_cache_dtype if cache_sparse_li_c8 else torch.int8,
                 li_quant_mode="cache_sparse_li_c4" if cache_sparse_li_c4
                 else "cache_sparse_li_c8" if cache_sparse_li_c8 else "",
                 sfa_dcp_replicated_indexer_size=sfa_dcp_replicated_indexer_size,

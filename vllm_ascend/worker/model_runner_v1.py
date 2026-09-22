@@ -441,19 +441,24 @@ class NPUModelRunner(GPUModelRunner):
         # dsa c8
         self.enable_sparse_sfa_c8 = vllm_config.cache_config.cache_dtype in ["fp8", "int8"]
         self.enable_sparse_li_c8 = vllm_config.attention_config.indexer_kv_dtype in ["fp8", "int8"]
+        if self.enable_sparse_sfa_c8:
+            self.sfa_c8_k_cache_dtype = kv_cache_dtype_str_to_dtype(
+                vllm_config.cache_config.cache_dtype, 
+                vllm_config.model_config
+            )
         if self.enable_sparse_li_c8:
-            self.c8_k_cache_dtype = kv_cache_dtype_str_to_dtype(
+            self.li_c8_k_cache_dtype = kv_cache_dtype_str_to_dtype(
                 vllm_config.attention_config.indexer_kv_dtype, 
                 vllm_config.model_config
             )
-            if self.c8_k_cache_dtype == torch.float8_e4m3fn:
-                self.c8_k_scale_cache_dtype = torch.float32
-            elif self.c8_k_cache_dtype == torch.int8:
-                self.c8_k_scale_cache_dtype = torch.float16
+            if self.li_c8_k_cache_dtype == torch.float8_e4m3fn:
+                self.li_c8_k_scale_cache_dtype = torch.float32
+            elif self.li_c8_k_cache_dtype == torch.int8:
+                self.li_c8_k_scale_cache_dtype = torch.float16       
         self.enable_sparse_li_c4 = self.ascend_config.enable_sparse_li_c4
         if self.enable_sparse_li_c4:
-            self.c4_k_cache_dtype = torch.uint8
-            self.c4_k_scale_cache_dtype = torch.float8_e8m0fnu
+            self.li_c4_k_cache_dtype = torch.uint8
+            self.li_c4_k_scale_cache_dtype = torch.float8_e8m0fnu
 
         self.attn_backend = get_attn_backend(
             0,
@@ -5523,7 +5528,7 @@ class NPUModelRunner(GPUModelRunner):
                     k_cache_dtype = v_cache_dtype = current_kv_cache_spec.dtype
 
                     if current_sparse_sfa_c8:
-                        k_cache_dtype = self.c8_k_cache_dtype
+                        k_cache_dtype = self.sfa_c8_k_cache_dtype
                     elif enable_fa_quant(self.vllm_config):
                         k_cache_dtype, v_cache_dtype = self.vllm_config.quant_config.get_kv_quant_dtype(
                             layer_name, current_kv_cache_spec.dtype, self.model_config
@@ -5864,7 +5869,7 @@ class NPUModelRunner(GPUModelRunner):
                             self.model_config.hf_text_config.kv_lora_rank,
                             self.model_config.hf_text_config.qk_rope_head_dim,
                         )
-                        dtype = self.c8_k_cache_dtype
+                        dtype = self.sfa_c8_k_cache_dtype
                     else:
                         head_size = (
                             self.model_config.hf_text_config.kv_lora_rank
@@ -5932,8 +5937,8 @@ class NPUModelRunner(GPUModelRunner):
                     block_size=self.block_size,
                     num_kv_heads=1,
                     head_size=head_dim // 2 if cache_sparse_li_c4 else head_dim,
-                    dtype=self.c4_k_cache_dtype if cache_sparse_li_c4
-                    else self.c8_k_cache_dtype if cache_sparse_li_c8 
+                    dtype=self.li_c4_k_cache_dtype if cache_sparse_li_c4
+                    else self.li_c8_k_cache_dtype if cache_sparse_li_c8 
                     else self.kv_cache_dtype,
                     cache_dtype_str=(
                         self.vllm_config.cache_config.cache_dtype
@@ -5941,8 +5946,8 @@ class NPUModelRunner(GPUModelRunner):
                         else "auto"
                     ),
                     scale_dim=head_dim // 64 * 2 if cache_sparse_li_c4 else 1 if cache_sparse_li_c8 else 0,
-                    scale_dtype=self.c4_k_scale_cache_dtype if cache_sparse_li_c4
-                    else self.c8_k_scale_cache_dtype if cache_sparse_li_c8 else torch.int8,
+                    scale_dtype=self.li_c4_k_scale_cache_dtype if cache_sparse_li_c4
+                    else self.li_c8_k_scale_cache_dtype if cache_sparse_li_c8 else torch.int8,
                     cache_sparse_li_c4=cache_sparse_li_c4,
                     cache_sparse_li_c8=cache_sparse_li_c8,
                     sfa_dcp_replicated_indexer_size=self.sfa_dcp_replicated_indexer_size,
