@@ -217,7 +217,7 @@ class AscendSFAIndexerBackend(nn.Module, AttentionBackend):
     def num_cache_tensors(self) -> int:
         """Number of tensors this indexer's cache occupies in the composed
         ``kv_cache`` tuple (k cache only, or k cache plus scale cache)."""
-             return 2 if self.enable_sparse_li_quant else 1
+        return 2 if self.enable_sparse_li_quant else 1
 
     def _quantize_li_tensor(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Apply Hadamard transform and quantize for LI C8 or C4 path."""
