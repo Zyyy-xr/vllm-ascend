@@ -206,7 +206,7 @@ class AscendIndexerOps:
         metadata: typing.Any,
     ) -> torch.Tensor:
         wait_for_device_metadata(DeviceMetadataStage.INDEXER, id(metadata.qli_metadata))
-        topk_idxs, _ = torch.ops._C_ascend.npu_quant_lightning_indexer_v2(
+        topk_idxs, _ = torch.ops._C_ascend.npu_vllm_quant_lightning_indexer_v2(
             query=query,
             key=key_cache,
             weights=self.device_operator.prepare_dsa_indexer_weights(weights),

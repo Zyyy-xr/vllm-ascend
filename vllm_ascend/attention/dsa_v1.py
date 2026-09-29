@@ -988,7 +988,7 @@ class AscendDSAMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
                 4,
                 out=qli_cmp_residual_k,
             )
-            qli_metadata = torch.ops._C_ascend.npu_quant_lightning_indexer_v2_metadata(
+            qli_metadata = torch.ops._C_ascend.npu_vllm_quant_lightning_indexer_v2_metadata(
                 num_heads_q=self.model_config.hf_config.index_n_heads,  # 64
                 num_heads_k=1,
                 head_dim=self.model_config.hf_config.index_head_dim,  # 128

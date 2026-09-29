@@ -903,7 +903,7 @@ class AscendDSAV41MetadataBuilder(AttentionMetadataBuilder[AscendDSAV41Metadata]
             residual = cmp_residual_buffer
 
             def build_qli_metadata() -> None:
-                value = torch.ops._C_ascend.npu_quant_lightning_indexer_v2_metadata(
+                value = torch.ops._C_ascend.npu_vllm_quant_lightning_indexer_v2_metadata(
                     int(_config_value(text_config, "index_n_heads")),
                     1,
                     int(_config_value(text_config, "index_head_dim")),

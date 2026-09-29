@@ -1061,7 +1061,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> compressor_metadata_out(
     return std::make_tuple(compress_cos, compress_sin, slot_mapping);
 }
 
-std::tuple<at::Tensor, at::Tensor> construct_quant_lightning_indexer_v2_output_tensor(const at::Tensor& query, const at::Tensor& key,
+std::tuple<at::Tensor, at::Tensor> construct_vllm_quant_lightning_indexer_v2_output_tensor(const at::Tensor& query, const at::Tensor& key,
                                                            int64_t sparse_count, std::string query_layout_str,
                                                            std::string key_layout_str, int64_t return_value)
 {
@@ -1096,7 +1096,7 @@ std::tuple<at::Tensor, at::Tensor> construct_quant_lightning_indexer_v2_output_t
     return std::tuple<at::Tensor, at::Tensor>(sparse_indices_out, sparse_values_out);
 }
 
-std::tuple<at::Tensor, at::Tensor> npu_quant_lightning_indexer_v2_npu(
+std::tuple<at::Tensor, at::Tensor> npu_vllm_quant_lightning_indexer_v2_npu(
     const at::Tensor &query, const at::Tensor &key, const at::Tensor &weights,
     const at::Tensor &query_dequant_scale, const at::Tensor &key_dequant_scale,
     int64_t topk, int64_t quant_mode,
@@ -1116,7 +1116,7 @@ std::tuple<at::Tensor, at::Tensor> npu_quant_lightning_indexer_v2_npu(
     std::string query_layout_str = std::string(layout_q);
     std::string key_layout_str = std::string(layout_k);
 
-    std::tuple<at::Tensor, at::Tensor> quant_lightning_indexer_output = construct_quant_lightning_indexer_v2_output_tensor(
+    std::tuple<at::Tensor, at::Tensor> quant_lightning_indexer_output = construct_vllm_quant_lightning_indexer_v2_output_tensor(
             query, key, topk, query_layout_str, key_layout_str, return_value);
     at::Tensor sparse_indices_out = std::get<0>(quant_lightning_indexer_output);
     at::Tensor sparse_values_out = std::get<1>(quant_lightning_indexer_output);
@@ -1140,7 +1140,7 @@ std::tuple<at::Tensor, at::Tensor> npu_quant_lightning_indexer_v2_npu(
     return std::tuple<at::Tensor, at::Tensor>(sparse_indices_out, sparse_values_out);
 }
 
-std::tuple<at::Tensor, at::Tensor> npu_quant_lightning_indexer_v2_compat_npu(
+std::tuple<at::Tensor, at::Tensor> npu_vllm_quant_lightning_indexer_v2_compat_npu(
     const at::Tensor &query, const at::Tensor &key, const at::Tensor &weights,
     const at::Tensor &query_dequant_scale, const at::Tensor &key_dequant_scale,
     int64_t topk, int64_t quant_mode,
@@ -1155,7 +1155,7 @@ std::tuple<at::Tensor, at::Tensor> npu_quant_lightning_indexer_v2_compat_npu(
     int64_t max_seqlen_q, c10::string_view layout_q, c10::string_view layout_k,
     int64_t mask_mode, int64_t cmp_ratio, int64_t return_value)
 {
-    TORCH_CHECK(return_value == 0, "npu_quant_lightning_indexer_v2 only supports return_value=0");
+    TORCH_CHECK(return_value == 0, "npu_vllm_quant_lightning_indexer_v2 only supports return_value=0");
     auto outputs = qli_v2::QuantLightningIndexerCandidate(
         query, key, weights, query_dequant_scale, key_dequant_scale, topk, quant_mode,
         c10::nullopt, cu_seqlens_q, cu_seqlens_k, seqused_q, seqused_k, cmp_residual_k,
@@ -1284,7 +1284,7 @@ at::Tensor npu_sparse_attn_sharedkv_metadata_npu(
     return output;
 }
 
-at::Tensor npu_quant_lightning_indexer_v2_metadata_npu(
+at::Tensor npu_vllm_quant_lightning_indexer_v2_metadata_npu(
     int64_t num_heads_q, int64_t num_heads_k, int64_t head_dim, int64_t topk, int64_t quant_mode,
     const c10::optional<at::Tensor> &cu_seqlens_q, const c10::optional<at::Tensor> &cu_seqlens_k,
     const c10::optional<at::Tensor> &seqused_q, const c10::optional<at::Tensor> &seqused_k,
@@ -3086,14 +3086,14 @@ TORCH_LIBRARY_EXPAND(CONCAT(_C, _ascend), ops)
     ops.impl("npu_sparse_flash_attention", torch::kPrivateUse1, &vllm_ascend::npu_sparse_flash_attention);
 
     ops.def(
-        "npu_quant_lightning_indexer_v2_metadata(int num_heads_q, int num_heads_k, int head_dim, int topk, "
+        "npu_vllm_quant_lightning_indexer_v2_metadata(int num_heads_q, int num_heads_k, int head_dim, int topk, "
         "int quant_mode, *, Tensor? cu_seqlens_q=None, Tensor? cu_seqlens_k=None, Tensor? seqused_q=None, "
         "Tensor? seqused_k=None, Tensor? cmp_residual_k=None, int batch_size=0, int max_seqlen_q=0, "
         "int max_seqlen_k=0, str layout_q='TND', str layout_k='PA_BBND', int mask_mode=3, int cmp_ratio=1, "
         "str device='npu') -> Tensor"
     );
-    ops.impl("npu_quant_lightning_indexer_v2_metadata", torch::kPrivateUse1,
-             &vllm_ascend::npu_quant_lightning_indexer_v2_metadata_npu);
+    ops.impl("npu_vllm_quant_lightning_indexer_v2_metadata", torch::kPrivateUse1,
+             &vllm_ascend::npu_vllm_quant_lightning_indexer_v2_metadata_npu);
     ops.def(
         "npu_quant_lightning_indexer_v3(Tensor query, Tensor key, Tensor weights, "
         "Tensor query_dequant_scale, Tensor key_dequant_scale, int topk, int quant_mode, *, "
@@ -3298,7 +3298,7 @@ TORCH_LIBRARY_EXPAND(CONCAT(_C, _ascend), ops)
     ops.impl("compressor_metadata_out", torch::kPrivateUse1, &vllm_ascend::compressor_metadata_out);
 
     ops.def(
-        "npu_quant_lightning_indexer_v2("
+        "npu_vllm_quant_lightning_indexer_v2("
             "Tensor query, Tensor key, Tensor weights, "
             "Tensor query_dequant_scale, Tensor key_dequant_scale, "
             "int topk, int quant_mode, *, "
@@ -3315,8 +3315,8 @@ TORCH_LIBRARY_EXPAND(CONCAT(_C, _ascend), ops)
             "int mask_mode=3, int cmp_ratio=4, int return_value=0"
         ") -> (Tensor sparse_indices, Tensor sparse_values)"
         );
-    ops.impl("npu_quant_lightning_indexer_v2", torch::kPrivateUse1,
-             &vllm_ascend::npu_quant_lightning_indexer_v2_compat_npu);
+    ops.impl("npu_vllm_quant_lightning_indexer_v2", torch::kPrivateUse1,
+             &vllm_ascend::npu_vllm_quant_lightning_indexer_v2_compat_npu);
 
     ops.def(
         "npu_sparse_attn_sharedkv("
