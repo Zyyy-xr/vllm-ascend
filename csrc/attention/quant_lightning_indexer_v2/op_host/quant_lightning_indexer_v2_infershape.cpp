@@ -38,7 +38,7 @@ constexpr uint32_t DIM_NUM_4 = 4;
 static ge::graphStatus InferShapeQuantLightningIndexerV2(gert::InferShapeContext *context)
 {
     if (context == nullptr) {
-        OP_LOGE("QuantLightningIndexerV2", "context is nullptr!");
+        OP_LOGE("VllmQuantLightningIndexerV2", "context is nullptr!");
         return ge::GRAPH_FAILED;
     }
     const gert::Shape *queryShape = context->GetInputShape(QUERY_INDEX);
@@ -62,7 +62,7 @@ static ge::graphStatus InferShapeQuantLightningIndexerV2(gert::InferShapeContext
     std::string inputLayoutQueryPtrStr = std::string(inputLayoutQueryPtr);
     std::string inputLayoutKeyPtrStr = std::string(inputLayoutKeyPtr);
     if (inputLayoutQueryPtrStr != "TND" && inputLayoutQueryPtrStr != "BSND") {
-        OP_LOGE_FOR_INVALID_VALUE("QuantLightningIndexerV2", "layout_q", inputLayoutQueryPtrStr.c_str(), "BSND or TND");
+        OP_LOGE_FOR_INVALID_VALUE("VllmQuantLightningIndexerV2", "layout_q", inputLayoutQueryPtrStr.c_str(), "BSND or TND");
         return GRAPH_FAILED;
     }
 
@@ -95,7 +95,7 @@ static ge::graphStatus InferShapeQuantLightningIndexerV2(gert::InferShapeContext
     uint32_t candidateMode = (candidate_mode != nullptr) ? static_cast<uint32_t>(*candidate_mode) : 3U;
     if (candidateMode == CANDIDATE_MODE_SOURCE) {
         OP_CHECK_IF(inputLayoutQueryPtrStr != "BSND",
-                    OP_LOGE("QuantLightningIndexerV2",
+                    OP_LOGE("VllmQuantLightningIndexerV2",
                             "candidate_mode=1 only supports layout_q=BSND, but got %s.",
                             inputLayoutQueryPtrStr.c_str()),
                     return GRAPH_FAILED);
@@ -115,7 +115,7 @@ static ge::graphStatus InferShapeQuantLightningIndexerV2(gert::InferShapeContext
 static ge::graphStatus InferDataTypeQuantLightningIndexerV2(gert::InferDataTypeContext *context)
 {
     if (context == nullptr) {
-        OP_LOGE("QuantLightningIndexerV2", "InferDataTypeContext context is nullptr!");
+        OP_LOGE("VllmQuantLightningIndexerV2", "InferDataTypeContext context is nullptr!");
         return ge::GRAPH_FAILED;
     }
     OP_LOGD(context->GetNodeName(), "Enter QuantLightningIndexerV2 InferDataType impl.");
@@ -127,7 +127,7 @@ static ge::graphStatus InferDataTypeQuantLightningIndexerV2(gert::InferDataTypeC
     return GRAPH_SUCCESS;
 }
 
-IMPL_OP_INFERSHAPE(QuantLightningIndexerV2)
+IMPL_OP_INFERSHAPE(VllmQuantLightningIndexerV2)
     .InferShape(InferShapeQuantLightningIndexerV2)
     .InferDataType(InferDataTypeQuantLightningIndexerV2);
 } // namespace ops

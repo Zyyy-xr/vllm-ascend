@@ -1726,7 +1726,7 @@ ge::graphStatus QuantLightningIndexerV2Tiling::DoTiling(QLIV2TilingInfo *tilingI
     if (tilingInfo->candidateMode == CANDIDATE_MODE_CONSUMER) {
         OP_CHECK_IF(tilingInfo->opParamInfo.candidateTopkIndex.desc == nullptr ||
                         tilingInfo->opParamInfo.candidateTopkIndex.desc->GetDataType() != ge::DT_INT32,
-                    OP_LOGE("QuantLightningIndexerV2", "candidate_topk_index dtype only supports int32."),
+                    OP_LOGE("VllmQuantLightningIndexerV2", "candidate_topk_index dtype only supports int32."),
                     return ge::GRAPH_FAILED);
         int64_t expectSize = 0;
         if (tilingInfo->inputQLayout == DataLayout::TND) {
@@ -1739,7 +1739,7 @@ ge::graphStatus QuantLightningIndexerV2Tiling::DoTiling(QLIV2TilingInfo *tilingI
         }
         int64_t actualSize = tilingInfo->opParamInfo.candidateTopkIndex.tensor->GetShapeSize();
         OP_CHECK_IF(actualSize != expectSize,
-                    OP_LOGE("QuantLightningIndexerV2",
+                    OP_LOGE("VllmQuantLightningIndexerV2",
                             "candidate_topk_index shape size must be %ld, but got %ld.", expectSize, actualSize),
                     return ge::GRAPH_FAILED);
     }
@@ -1784,7 +1784,7 @@ ge::graphStatus QuantLightningIndexerV2Tiling::DoTiling(QLIV2TilingInfo *tilingI
 // --------------------------Tiling函数定义---------------------------
 ge::graphStatus TilingForQuantLightningIndexerV2(gert::TilingContext *context)
 {
-    OP_CHECK_IF(context == nullptr, OP_LOGE("QuantLightningIndexerV2", "Tiling context is null."),
+    OP_CHECK_IF(context == nullptr, OP_LOGE("VllmQuantLightningIndexerV2", "Tiling context is null."),
                 return ge::GRAPH_FAILED);
     QLIV2TilingInfo QLIV2Info;
     QLIV2InfoParser QLIV2InfoParser(context);
@@ -1796,7 +1796,7 @@ ge::graphStatus TilingForQuantLightningIndexerV2(gert::TilingContext *context)
 }
 
 // --------------------------Tiling及函数TilingPrepare函数注册--------
-IMPL_OP_OPTILING(QuantLightningIndexerV2)
+IMPL_OP_OPTILING(VllmQuantLightningIndexerV2)
     .Tiling(TilingForQuantLightningIndexerV2)
     .TilingParse<QLIV2CompileInfo>(TilingPrepareForQuantLightningIndexerV2);
 

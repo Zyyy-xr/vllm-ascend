@@ -32,7 +32,7 @@ static ge::graphStatus InferDtypeQuantLightningIndexerV2Metadata(gert::InferData
     return GRAPH_SUCCESS;
 }
 
-IMPL_OP_INFERSHAPE(QuantLightningIndexerV2Metadata)
+IMPL_OP_INFERSHAPE(VllmQuantLightningIndexerV2Metadata)
     .InferShape(InferShapeQuantLightningIndexerV2Metadata)
     .InferDataType(InferDtypeQuantLightningIndexerV2Metadata);
 }  // namespace ops
