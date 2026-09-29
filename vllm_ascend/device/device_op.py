@@ -942,6 +942,13 @@ class BaseDeviceAdaptor:
 
 class A5DeviceAdaptor(BaseDeviceAdaptor):
     @staticmethod
+    @lru_cache(maxsize=1)
+    def _load_cann_quant_lightning_indexer_ops():
+        """Lazily load CANN V2 quant_lightning_indexer ops (C4 only)."""
+        ops = import_module("cann_ops_transformer.ops")
+        return ops.quant_lightning_indexer_metadata, ops.quant_lightning_indexer
+
+    @staticmethod
     def _scatter_cache(var, indices, updates) -> bool:
         operation = getattr(torch_npu, "npu_scatter_pa_cache", None)
         if operation is None or not var.is_contiguous():

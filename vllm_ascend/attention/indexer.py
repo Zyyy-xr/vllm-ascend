@@ -223,7 +223,7 @@ class AscendSFAIndexerBackend(nn.Module, AttentionBackend):
         self.register_buffer("k_hadamard", None, persistent=False)
 
     def process_weights_after_loading(self) -> None:
-        if not self.enable_sparse_li_c8:
+        if not self.enable_sparse_li_quant:
             return
         if self.q_hadamard is None:
             hadamard = torch.tensor(scipy.linalg.hadamard(128), dtype=torch.bfloat16, device="npu")
@@ -244,7 +244,7 @@ class AscendSFAIndexerBackend(nn.Module, AttentionBackend):
 
     def _quantize_li_tensor(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Apply Hadamard transform and quantize for LI C8 or C4 path."""
-        x = x @ AscendSFAIndexerBackend.q_hadamard
+        x = x @ self.q_hadamard
         shape_ori = x.shape
         x = x.view(-1, self.head_dim)
         if self.enable_sparse_li_c4:
@@ -358,6 +358,7 @@ class AscendSFAIndexerBackend(nn.Module, AttentionBackend):
             k_li = torch.cat([k_li_pe, k_li_nope], dim=-1)  # [b*s,128]
 
         if self.enable_sparse_li_quant:
+            assert self.k_hadamard is not None
             k_li, k_li_scale = self._quantize_li_tensor(k_li)
         else:
             k_li_scale = None
@@ -493,6 +494,7 @@ class AscendSFAIndexerBackend(nn.Module, AttentionBackend):
         q_li_scale = None
         q_li_shape_ori = None
         if self.enable_sparse_li_quant:
+            assert self.q_hadamard is not None
             q_li_shape_ori = q_li.shape
             q_li, q_li_scale = self._quantize_li_tensor(q_li)
 
